@@ -1,1 +1,1 @@
-# memdp-qbf
+# MEMDP AS Reachability => QBF Formula
