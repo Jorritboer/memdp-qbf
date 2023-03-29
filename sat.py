@@ -79,6 +79,12 @@ def get_solver(MEMDP):
 
     # clause 6
     for env in environments:
+        for state in states:
+            if not state in MEMDP["winning"]:
+                s.add(Not(Paths[env][state][0]))
+
+    # clause 7
+    for env in environments:
         for state1 in states:
             for k in range(1, K + 1):
                 action_disjunction = []
@@ -90,12 +96,6 @@ def get_solver(MEMDP):
                         And(Actions[state1][action], Or(state_disjunction))
                     )
                 s.add(Paths[env][state1][k] == Or(action_disjunction))
-
-    # clause 7??
-    for env in environments:
-        for state in states:
-            if not state in MEMDP["winning"]:
-                s.add(Paths[env][state][0] == False)
 
     def print_policy(model):
         for state in states:
