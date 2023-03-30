@@ -14,14 +14,14 @@ def get_solver(MEMDP):
 
     # defining the variables
 
-    # state 0 action a -> A0,a
+    # state 0 action a -> A0_a
     Actions = []
     for state in states:
         Actions.append({})
         for action in actions:
             Actions[state][action] = Bool("A" + str(state) + "_" + str(action))
 
-    # environment 1 state 2 => S1,2
+    # environment 1 state 2 => S1_2
     States = []
     for env in environments:
         l = []
@@ -29,7 +29,7 @@ def get_solver(MEMDP):
             l.append(Bool("S" + str(env) + "_" + str(state)))
         States.append(l)
 
-    # environment 0 state 1 path length 5 => P0,1,5
+    # environment 0 state 1 path length 5 => P0_1_5
     Paths = []
     for env in environments:
         l = []
