@@ -299,15 +299,6 @@ def get_solver(MEMDP):
     # First phase clauses aren't bound so can be added immediately
     solver.add(phaseClauses[0])
 
-    combinedClauses = []
-    for phase in phases[1:]:
-        combinedClauses.append(
-            Implies(
-                PbEq([(r, 1) for r in flattenReveals(PhaseReveals[phase])], 1),
-                And(phaseClauses[phase]),
-            )
-        )
-
     # add last phase clauses because those don't include T variables
     phase = len(phases) - 1
     quantifiedClauses = ForAll(
@@ -316,12 +307,12 @@ def get_solver(MEMDP):
             flattenActions(PhaseActions[phase])
             + flattenStates(PhaseStates[phase])
             + flattenPaths(PhasePaths[phase]),
-            And(combinedClauses),
+            And(phaseClauses[phase]),
         ),
     )
 
     # rest of clauses:
-    # In reverse order because we start with the combinedClauses
+    # In reverse order because we start with the last clause
     # and add the quantifiers backwards. So we get
     # ∀∃ phase 1 ... ∀∃ phase n [combinedclauses]
     for phase in list(reversed(phases))[1:-1]:
@@ -331,8 +322,18 @@ def get_solver(MEMDP):
             Exists(
                 flattenActions(PhaseActions[phase])
                 + flattenStates(PhaseStates[phase])
-                + flattenPaths(PhasePaths[phase]),
-                quantifiedClauses,
+                + flattenPaths(PhasePaths[phase])
+                + flattenTransitions(PhaseTransitions[phase]),
+                And(
+                    Implies(
+                        PbEq([(r, 1) for r in flattenReveals(PhaseReveals[phase])], 1),
+                        And(phaseClauses[phase]),
+                    ),
+                    Implies(
+                        Or(flattenTransitions(PhaseTransitions[phase])),
+                        quantifiedClauses,
+                    ),
+                ),
             ),
         )
 
