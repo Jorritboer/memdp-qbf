@@ -114,6 +114,7 @@ def get_solver(MEMDP):
         return FlatTransitions
 
     def getReveals(phase):
+        index = 0
         Reveals = [{} for _ in range(len(states))]
         for state1 in states:
             o = {}
@@ -121,28 +122,12 @@ def get_solver(MEMDP):
                 ll = [None for _ in range(len(states))]
                 for env in environments:
                     for state2 in MEMDP["MDPs"][env][state1][action]:
-                        ll[state2] = Bool(
-                            str(phase)
-                            + "R"
-                            + str(state1)
-                            + "_"
-                            + str(action)
-                            + "_"
-                            + str(state2)
-                        )
+                        if ll[state2] == None:
+                            ll[state2] = index
+                            index += 1
                 o[action] = ll
             Reveals[state1] = o
         return Reveals
-
-    def flattenReveals(Reveals):
-        FlatReveals = []
-        for state1 in states:
-            for action in actions:
-                for state2 in states:
-                    r = Reveals[state1][action][state2]
-                    if not r == None:
-                        FlatReveals.append(r)
-        return FlatReveals
 
     # clauses 1,3,4,5 are identical for each phase so we make a function to make those
     def clause1(Actions):
@@ -194,6 +179,7 @@ def get_solver(MEMDP):
         Paths = getPaths(phase)
         Transitions = getTransitions(phase)
         Reveals = getReveals(phase)
+        R = Int("R" + str(phase))
 
         clauses = []
         clauses += clause1(Actions)
@@ -279,7 +265,7 @@ def get_solver(MEMDP):
                                             PhaseTransitions[phase - 1][state1][action][
                                                 state2
                                             ],
-                                            Reveals[state1][action][state2],
+                                            R == Reveals[state1][action][state2],
                                             PhaseStates[phase - 1][env][state1],
                                             PhaseActions[phase - 1][state1][action],
                                         ]
@@ -294,15 +280,16 @@ def get_solver(MEMDP):
         PhaseStates.append(States)
         PhasePaths.append(Paths)
         PhaseTransitions.append(Transitions)
-        PhaseReveals.append(Reveals)
+        PhaseReveals.append(R)
 
     # First phase clauses aren't bound so can be added immediately
     solver.add(phaseClauses[0])
 
     # add last phase clauses because those don't include T variables
     phase = len(phases) - 1
+    R = PhaseReveals[phase]
     quantifiedClauses = ForAll(
-        flattenReveals(PhaseReveals[phase]),
+        R,
         Exists(
             flattenActions(PhaseActions[phase])
             + flattenStates(PhaseStates[phase])
@@ -316,19 +303,16 @@ def get_solver(MEMDP):
     # and add the quantifiers backwards. So we get
     # ∀∃ phase 1 ... ∀∃ phase n [combinedclauses]
     for phase in list(reversed(phases))[1:-1]:
-        FlatReveals = flattenReveals(PhaseReveals[phase])
+        R = PhaseReveals[phase]
         quantifiedClauses = ForAll(
-            FlatReveals,
+            R,
             Exists(
                 flattenActions(PhaseActions[phase])
                 + flattenStates(PhaseStates[phase])
                 + flattenPaths(PhasePaths[phase])
                 + flattenTransitions(PhaseTransitions[phase]),
                 And(
-                    Implies(
-                        PbEq([(r, 1) for r in flattenReveals(PhaseReveals[phase])], 1),
-                        And(phaseClauses[phase]),
-                    ),
+                    And(phaseClauses[phase]),
                     Implies(
                         Or(flattenTransitions(PhaseTransitions[phase])),
                         quantifiedClauses,
