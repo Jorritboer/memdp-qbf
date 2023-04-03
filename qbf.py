@@ -45,26 +45,13 @@ def get_solver(MEMDP):
                 FlatStates.append(States[env][state])
         return FlatStates
 
-    # phase 2 environment 0 state 1 path length 5 => 2P0_1_5
+    # phase 2 environment 0 state 1 path => 2P0_1
     def getPaths(phase):
         Paths = []
         for env in environments:
             l = []
             for state in states:
-                ll = []
-                for k in range(K + 1):
-                    ll.append(
-                        Bool(
-                            str(phase)
-                            + "P"
-                            + str(env)
-                            + "_"
-                            + str(state)
-                            + "_"
-                            + str(k)
-                        )
-                    )
-                l.append(ll)
+                l.append(Int(str(phase) + "P" + str(env) + "_" + str(state)))
             Paths.append(l)
         return Paths
 
@@ -72,8 +59,7 @@ def get_solver(MEMDP):
         FlatPaths = []
         for env in environments:
             for state in states:
-                for k in range(K + 1):
-                    FlatPaths.append(Paths[env][state][k])
+                FlatPaths.append(Paths[env][state])
         return FlatPaths
 
     # phase 2 state 1 action a state 2 => 2T1_a_2
@@ -138,15 +124,14 @@ def get_solver(MEMDP):
         clause = []
         for env in environments:
             for state in states:
-                clause.append(Implies(States[env][state], Paths[env][state][K]))
+                clause.append(Implies(States[env][state], Paths[env][state] <= K))
         return clause
 
     def clause4(Paths):
         clause = []
         for env in environments:
             for target in MEMDP["winning"][env]:
-                for k in range(K + 1):
-                    clause.append(Paths[env][target][k])
+                clause.append(Paths[env][target] == 0)
         return clause
 
     def clause5(Paths):
@@ -154,7 +139,7 @@ def get_solver(MEMDP):
         for env in environments:
             for state in states:
                 if not state in MEMDP["winning"][env]:
-                    clause.append(Not(Paths[env][state][0]))
+                    clause.append(Paths[env][state] > 0)
         return clause
 
     solver = Solver()
@@ -221,14 +206,16 @@ def get_solver(MEMDP):
                             for state2 in MEMDP["MDPs"][env][state1][action]:
                                 state_disjunction.append(
                                     Or(
-                                        Paths[env][state2][k - 1],
+                                        Paths[env][state2] < k,
                                         Transitions[state1][action][state2],
                                     )
                                 )
                             action_disjunction.append(
                                 And(Actions[state1][action], Or(state_disjunction))
                             )
-                        clauses.append(Paths[env][state1][k] == Or(action_disjunction))
+                        clauses.append(
+                            (Paths[env][state1] <= k) == Or(action_disjunction)
+                        )
         else:
             for env in environments:
                 for state1 in states:
@@ -237,11 +224,13 @@ def get_solver(MEMDP):
                         for action in actions:
                             state_disjunction = []
                             for state2 in MEMDP["MDPs"][env][state1][action]:
-                                state_disjunction.append(Paths[env][state2][k - 1])
+                                state_disjunction.append(Paths[env][state2] < k)
                             action_disjunction.append(
                                 And(Actions[state1][action], Or(state_disjunction))
                             )
-                        clauses.append(Paths[env][state1][k] == Or(action_disjunction))
+                        clauses.append(
+                            (Paths[env][state1] <= k) == Or(action_disjunction)
+                        )
 
         # clause 7 for first phase
         if phase == 0:
