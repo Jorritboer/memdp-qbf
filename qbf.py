@@ -144,6 +144,13 @@ def get_solver(MEMDP):
 
     solver = Solver()
 
+    def newClause(Paths):
+        clause = []
+        for env in environments:
+            for state in states:
+                clause.append(And(0 <= Paths[env][state], Paths[env][state] <= K + 1))
+        return clause
+
     # variables per phase
     PhaseActions = []
     PhaseStates = []
@@ -194,6 +201,7 @@ def get_solver(MEMDP):
         clauses += clause3(States, Paths)
         clauses += clause4(Paths)
         clauses += clause5(Paths)
+        clauses += newClause(Paths)
 
         # clause 6, different for last phase
         if phase < len(phases) - 1:
