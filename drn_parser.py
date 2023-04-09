@@ -22,10 +22,12 @@ def read_mdp(file):
         state = int(match.group(1))
         if re.search("state\s\d+\sinit", line):
             starting.append(state)
-        elif re.search("state\s\d+\swin", line):
+        elif re.search("state\s\d+\s(win|target)", line):
             winning.append(state)
 
         line = file.readline()
+        while line.startswith("//"):  # skip comments
+            line = file.readline()
         # Read actions
         while match := re.search("action\s(\w+)", line.strip()):
             action = match.group(1)
