@@ -1,30 +1,27 @@
-from z3 import unsat, set_param
+from z3 import unsat
 import sat
 import qbf
 import drn_parser
+import sys
 
-dirs = [
-    # "example_drns/ex1",
-    # "example_drns/ex2",
-    # "example_drns/sat1",
-    # "example_drns/memory",
-    # "example_drns/mem2test",
-    "example_drns/test",
-]
-for dir in dirs:
-    memdp = drn_parser.read_memdp(dir)
+dir = sys.argv[1]
 
-    solver, print_policy = qbf.get_solver(memdp)
+print("reading drn files")
+memdp = drn_parser.read_memdp(dir)
 
-    with open(dir + "/expr.txt", "w") as f:
-        f.write(solver.sexpr())
+print("generating formulas")
+solver, print_policy = qbf.get_solver(memdp)
 
-    print("------")
-    print(dir)
-    # set_param(verbose=2)
-    if solver.check() == unsat:
-        print("not satisfiable")
-    else:
-        model = solver.model()
-        print_policy(model)
-        print(solver.statistics())
+with open(dir + "/expr.txt", "w") as f:
+    f.write(solver.sexpr())
+
+print("------")
+print("checking")
+print(dir)
+# set_param(verbose=2)
+if solver.check() == unsat:
+    print("not satisfiable")
+else:
+    model = solver.model()
+    print_policy(model)
+print("Time:", solver.statistics().get_key_value("time"))
