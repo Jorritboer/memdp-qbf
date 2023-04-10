@@ -1,11 +1,6 @@
 from z3 import *
 
-# assumptions about memdp:
-# every state has the same actions
-# states are integers and denoted by index
-# every environment has the same states, actions
-# starting and winning states are same in all envs
-# goal states are absorbing
+
 def get_solver(MEMDP):
     states = list(range(len(MEMDP["MDPs"][0])))
     actions = list(MEMDP["MDPs"][0][states[0]].keys())
@@ -73,14 +68,14 @@ def get_solver(MEMDP):
 
     # clause 5
     for env in environments:
-        for target in MEMDP["winning"]:
+        for target in MEMDP["winning"][env]:
             for k in range(K + 1):
                 s.add(Paths[env][target][k])
 
     # clause 6
     for env in environments:
         for state in states:
-            if not state in MEMDP["winning"]:
+            if not state in MEMDP["winning"][env]:
                 s.add(Not(Paths[env][state][0]))
 
     # clause 7

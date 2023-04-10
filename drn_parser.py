@@ -2,6 +2,12 @@ import re
 import os
 
 
+# assumptions about memdp:
+# every state has the same actions
+# states are integers and denoted by index
+# every environment has the same states, actions
+# starting states are same in all envs
+# goal states are absorbing
 def read_mdp(file):
     line = file.readline()
     while not re.search("@nr_states", line):
@@ -46,12 +52,12 @@ def read_mdp(file):
 # Read all drn files in directory as environments
 def read_memdp(dir):
     MEMDP = {"starting": [], "winning": [], "MDPs": []}
-    for file in os.listdir(dir):
+    for file in sorted(os.listdir(dir)):
         if file.endswith(".drn"):
             path = os.path.join(dir, file)
             with open(path, "r") as file:
                 MDP, starting, winning = read_mdp(file)
                 MEMDP["starting"] = starting
-                MEMDP["winning"] = winning
+                MEMDP["winning"].append(winning)
                 MEMDP["MDPs"].append(MDP)
     return MEMDP
