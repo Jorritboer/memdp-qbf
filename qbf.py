@@ -199,38 +199,45 @@ def get_solver(MEMDP):
         if phase < len(phases) - 1:
             for env in environments:
                 for state1 in states:
-                    for k in range(1, K + 1):
+                    # for a winning state s, Ps is not equal to a successor + 1
+                    if not state1 in MEMDP["winning"][env]:
                         action_disjunction = []
                         for action in actions:
                             state_disjunction = []
                             for state2 in MEMDP["MDPs"][env][state1][action]:
                                 state_disjunction.append(
                                     Or(
-                                        Paths[env][state2] < k,
-                                        Transitions[state1][action][state2],
+                                        Paths[env][state1] == (Paths[env][state2] + 1),
+                                        And(  # if state's successor is transition P=1
+                                            Transitions[state1][action][state2],
+                                            Paths[env][state1] == 1,
+                                        ),
                                     )
                                 )
                             action_disjunction.append(
                                 And(Actions[state1][action], Or(state_disjunction))
                             )
                         clauses.append(
-                            (Paths[env][state1] <= k) == Or(action_disjunction)
-                        )
+                            Or(Or(action_disjunction), Paths[env][state1] == (K + 1))
+                        )  # P=K+1 means unreachable
         else:
             for env in environments:
                 for state1 in states:
-                    for k in range(1, K + 1):
+                    # for a winning state s, Ps is not equal to a successor + 1
+                    if not state1 in MEMDP["winning"][env]:
                         action_disjunction = []
                         for action in actions:
                             state_disjunction = []
                             for state2 in MEMDP["MDPs"][env][state1][action]:
-                                state_disjunction.append(Paths[env][state2] < k)
+                                state_disjunction.append(
+                                    Paths[env][state1] == (Paths[env][state2] + 1)
+                                )
                             action_disjunction.append(
                                 And(Actions[state1][action], Or(state_disjunction))
                             )
                         clauses.append(
-                            (Paths[env][state1] <= k) == Or(action_disjunction)
-                        )
+                            Or(Or(action_disjunction), Paths[env][state1] == (K + 1))
+                        )  # P=K+1 means unreachable
 
         # clause 7 for first phase
         if phase == 0:
