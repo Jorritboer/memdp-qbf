@@ -39,7 +39,7 @@ def read_mdp(file):
             action = match.group(1)
             line = file.readline()
             # Read transitions
-            while match := re.search("(\d)+\s*:\s*\d+", line.strip()):
+            while match := re.search("(\d+)\s*:\s*\d+", line.strip()):
                 transition = int(match.group(1))
                 if not action in MDP[state]:
                     MDP[state][action] = []
