@@ -85,15 +85,21 @@ def get_solver(MEMDP):
                 ll = [None for _ in range(len(states))]
                 for env in environments:
                     for state2 in MEMDP["MDPs"][env][state1][action]:
-                        ll[state2] = Bool(
-                            str(phase)
-                            + "T"
-                            + str(state1)
-                            + "_"
-                            + str(action)
-                            + "_"
-                            + str(state2)
-                        )
+                        if any(  # is there any environment in which this transition does not exist?
+                            [  # if not it will never gain any knowledge
+                                state2 not in MEMDP["MDPs"][env2][state1][action]
+                                for env2 in environments
+                            ]
+                        ):
+                            ll[state2] = Bool(
+                                str(phase)
+                                + "T"
+                                + str(state1)
+                                + "_"
+                                + str(action)
+                                + "_"
+                                + str(state2)
+                            )
                 o[action] = ll
             Transitions[state1] = o
         return Transitions
@@ -185,15 +191,27 @@ def get_solver(MEMDP):
                 for state1 in states:
                     for action in actions:
                         for state2 in MEMDP["MDPs"][env][state1][action]:
-                            clauses.append(
-                                Implies(
-                                    And(States[env][state1], Actions[state1][action]),
-                                    Or(
+                            if Transitions[state1][action][state2] is not None:
+                                clauses.append(
+                                    Implies(
+                                        And(
+                                            States[env][state1], Actions[state1][action]
+                                        ),
+                                        Or(
+                                            States[env][state2],
+                                            Transitions[state1][action][state2],
+                                        ),
+                                    )
+                                )
+                            else:
+                                clauses.append(
+                                    Implies(
+                                        And(
+                                            States[env][state1], Actions[state1][action]
+                                        ),
                                         States[env][state2],
-                                        Transitions[state1][action][state2],
                                     ),
                                 )
-                            )
         else:
             for env in environments:
                 for state1 in states:
@@ -219,12 +237,15 @@ def get_solver(MEMDP):
                         for action in actions:
                             state_disjunction = []
                             for state2 in MEMDP["MDPs"][env][state1][action]:
-                                state_disjunction.append(
-                                    Or(
-                                        Paths[env][state2][k - 1],
-                                        Transitions[state1][action][state2],
+                                if Transitions[state1][action][state2] is not None:
+                                    state_disjunction.append(
+                                        Or(
+                                            Paths[env][state2][k - 1],
+                                            Transitions[state1][action][state2],
+                                        )
                                     )
-                                )
+                                else:
+                                    state_disjunction.append(Paths[env][state2][k - 1])
                             action_disjunction.append(
                                 And(Actions[state1][action], Or(state_disjunction))
                             )
@@ -253,21 +274,25 @@ def get_solver(MEMDP):
                 for state1 in states:
                     for action in actions:
                         for state2 in MEMDP["MDPs"][env][state1][action]:
-                            clauses.append(
-                                Implies(
-                                    And(
-                                        [
-                                            PhaseTransitions[phase - 1][state1][action][
-                                                state2
-                                            ],
-                                            R == Reveals[state1][action][state2],
-                                            PhaseStates[phase - 1][env][state1],
-                                            PhaseActions[phase - 1][state1][action],
-                                        ]
-                                    ),
-                                    States[env][state2],
+                            if (
+                                PhaseTransitions[phase - 1][state1][action][state2]
+                                is not None
+                            ):
+                                clauses.append(
+                                    Implies(
+                                        And(
+                                            [
+                                                PhaseTransitions[phase - 1][state1][
+                                                    action
+                                                ][state2],
+                                                R == Reveals[state1][action][state2],
+                                                PhaseStates[phase - 1][env][state1],
+                                                PhaseActions[phase - 1][state1][action],
+                                            ]
+                                        ),
+                                        States[env][state2],
+                                    )
                                 )
-                            )
 
         phaseClauses.append(clauses)
 
