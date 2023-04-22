@@ -93,12 +93,14 @@ def get_solver(MEMDP):
                     Or(Or(action_disjunction), Paths[env][state1] == (K + 1))
                 )  # P=K+1 means unreachable
 
-    def print_policy(model):
+    def policy(model):
+        policy = ""
         for state in states:
             a = []
             for action in actions:
                 if model[Actions[state][action]]:
                     a.append(action)
-            print("State " + str(state) + ":" + str(a))
+            policy += f"State {str(state)}: {a}\n"
+        return policy
 
-    return s, print_policy
+    return s, policy

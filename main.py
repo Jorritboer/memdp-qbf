@@ -2,30 +2,59 @@ from z3 import unsat, unknown
 import sat
 import qbf
 import drn_parser
-import sys
+import argparse
 
-dir = sys.argv[1]
+parser = argparse.ArgumentParser(
+    description="MEMDP Almost-Sure Reachability QBF/SAT Formula"
+)
+parser.add_argument("memdps", nargs="+", help="directories of memdps to process")
+parser.add_argument(
+    "-f", "--formula", choices=["sat", "qbf"], default="qbf", help="sat or qbf"
+)
+parser.add_argument("-t", "--timeout", type=int, help="Timeout in seconds")
+parser.add_argument("-v", "--verbose", action="store_true")
+parser.add_argument(
+    "-e",
+    "--expression",
+    action="store_true",
+    help="If this flag is set, the expression for each memdp is written to a expression.txt file in the directory",
+)
 
-print("reading drn files")
-memdp = drn_parser.read_memdp(dir)
+args = parser.parse_args()
 
-print("generating formulas")
-solver, print_policy = qbf.get_solver(memdp)
+# only prints if args.verbose
+verboseprint = print if args.verbose else lambda *a, **k: None
 
-# with open(dir + "/expr.txt", "w") as f:
-#     f.write(solver.sexpr())
+print("=================")
+print(f"{args.formula} timeout={args.timeout}")
+print("=================")
 
-print("------")
-print("checking")
-print(dir)
+for dir in args.memdps:
+    verboseprint("reading drn files")
+    memdp = drn_parser.read_memdp(dir)
 
-solver.set("timeout", 20000)  # ms
-check = solver.check()
-if check == unsat:
-    print("not satisfiable")
-elif check == unknown:
-    print("timeout")
-else:
-    model = solver.model()
-    print_policy(model)
-print("Time:", solver.statistics().get_key_value("time"))
+    verboseprint("generating formulas")
+    if args.formula == "qbf":
+        solver, policy = qbf.get_solver(memdp)
+    else:
+        solver, policy = sat.get_solver(memdp)
+
+    if args.expression:
+        with open(dir + "/expr.txt", "w") as f:
+            f.write(solver.sexpr())
+
+    verboseprint("------")
+    verboseprint("checking")
+    print(dir, end="")
+
+    if args.timeout:
+        solver.set("timeout", args.timeout * 1000)  # s -> ms
+    check = solver.check()
+    time = solver.statistics().get_key_value("time")
+    if check == unsat:
+        print(f":\tunsat\t{time}")
+    elif check == unknown:
+        print(f":\ttimeout\t{time}")
+    else:
+        print(f":\tsat\t{time}")
+        verboseprint(policy(solver.model()))
