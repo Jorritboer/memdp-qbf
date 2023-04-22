@@ -315,15 +315,17 @@ def get_solver(MEMDP):
 
     solver.add(quantifiedClauses)
 
-    def print_policy(model):
+    def policy(model):
+        policy = ""
         for state in states:
             a = []
             for action in actions:
                 if model[PhaseActions[0][state][action]]:
                     a.append(action)
-            print("State " + str(state) + ":" + str(a))
+            policy += f"State {str(state)}: {a}\n"
         for t in flattenTransitions(PhaseTransitions[0]):
             if model[t]:
-                print(t)
+                policy += f"{t}\n"
+        return policy
 
-    return solver, print_policy
+    return solver, policy
