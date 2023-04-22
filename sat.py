@@ -1,6 +1,17 @@
 from z3 import *
 
 
+def min(vs):
+    # calculate minimum of set of ints using balanced tree of ifs
+    n = len(vs)
+    if n == 1:
+        return vs[0]
+    n = n // 2
+    a = min(vs[:n])
+    b = min(vs[n:])
+    return If(a < b, a, b)
+
+
 def get_solver(MEMDP):
     states = list(range(len(MEMDP["MDPs"][0])))
     actions = list(MEMDP["MDPs"][0][states[0]].keys())
@@ -77,16 +88,20 @@ def get_solver(MEMDP):
     # clause 7
     for env in environments:
         for state1 in states:
-            for k in range(1, K + 1):
-                action_disjunction = []
+            # for a winning state s, Ps is not equal to a successor + 1
+            if not state1 in MEMDP["winning"][env]:
+                m_actions = []
                 for action in actions:
-                    state_disjunction = []
+                    ma = []
                     for state2 in MEMDP["MDPs"][env][state1][action]:
-                        state_disjunction.append(Paths[env][state2] < k)
-                    action_disjunction.append(
-                        And(Actions[state1][action], Or(state_disjunction))
-                    )
-                s.add((Paths[env][state1] <= k) == Or(action_disjunction))
+                        ma.append(Paths[env][state2])
+                    m_actions.append(If(Actions[state1][action], min(ma), K))
+                s.add(
+                    Or(
+                        Paths[env][state1] == (min(m_actions) + 1),
+                        Paths[env][state1] == K + 1,
+                    )  # P=K+1 means unreachable
+                )
 
     def print_policy(model):
         for state in states:
