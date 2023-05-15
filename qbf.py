@@ -1,11 +1,11 @@
 from z3 import *
 
 
-def get_solver(MEMDP):
+def get_solver(MEMDP, nr_phases):
     states = list(range(len(MEMDP["MDPs"][0])))
     actions = list(MEMDP["MDPs"][0][states[0]].keys())
     environments = list(range(len(MEMDP["MDPs"])))
-    phases = list(range(0, len(environments)))
+    phases = list(range(0, len(environments) if nr_phases is None else nr_phases))
     K = len(states)
 
     # defining the variables
