@@ -19,6 +19,7 @@ parser.add_argument(
     action="store_true",
     help="If this flag is set, the expression for each memdp is written to a expression.txt file in the directory",
 )
+parser.add_argument("-p", "--phases", type=int, help="Number of phases, (only for QBF)")
 
 args = parser.parse_args()
 
@@ -35,7 +36,7 @@ for dir in args.memdps:
 
     verboseprint("generating formulas")
     if args.formula == "qbf":
-        solver, policy = qbf.get_solver(memdp)
+        solver, policy = qbf.get_solver(memdp, args.phases)
     else:
         solver, policy = sat.get_solver(memdp)
 
