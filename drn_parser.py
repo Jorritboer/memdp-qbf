@@ -26,9 +26,9 @@ def read_mdp(file):
     # Read states
     while match := re.search("state\s(\d+)", line):
         state = int(match.group(1))
-        if re.search("state\s\d+\sinit", line):
+        if re.search("init", line):
             starting.append(state)
-        elif re.search("state\s\d+\s(win|target)", line):
+        elif re.search("win|target", line):
             winning.append(state)
 
         line = file.readline()
