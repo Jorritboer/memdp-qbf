@@ -1,6 +1,6 @@
 # MEMDP AS Reachability => QBF Formula
 This repository provides a reduction from MEMDP models to a QBF formula implemented in the Z3 theorem prover. 
-Part of my bachelor thesis. 
+Part of my [bachelor thesis](https://www.cs.ru.nl/bachelors-theses/2023/Jorrit_de_Boer___1026441___Solving_Robust_Reachability_Using_Quantified_Boolean_Formulas.pdf). 
 
 ## Usage
 ```
